@@ -14,12 +14,20 @@ namespace HomeOfficeOnAirNotifierService
         /// </summary>
         static void Main()
         {
+#if DEBUG
+            // While debugging, this section is used.
+            Service1 service = new Service1();
+            service.OnDebug();
+            System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite);
+
+#else
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
                 new Service1()
             };
             ServiceBase.Run(ServicesToRun);
+#endif
         }
     }
 }
