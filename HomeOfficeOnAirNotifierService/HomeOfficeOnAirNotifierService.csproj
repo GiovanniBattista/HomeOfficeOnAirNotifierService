@@ -75,6 +75,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SessionStatePublisher.cs" />
     <Compile Include="MicrophoneChecker.cs" />
     <Compile Include="HardwareChecker.cs" />
     <Compile Include="Service1.cs">

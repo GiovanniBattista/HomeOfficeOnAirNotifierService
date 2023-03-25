@@ -1,4 +1,5 @@
-﻿using NAudio.CoreAudioApi;
+﻿using HomeOfficeOnAirNotifierService.Publisher;
+using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Utils;
 using System;
@@ -15,14 +16,16 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
     {
         private string microphoneInQuestion;
         private MMDevice microphone;
+        private IOnAirStatePublisher statePublisher;
 
         public MicrophoneChecker() 
         {
             this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneInQuestion");    
         }
 
-        public void InitializeChecker()
+        public void InitializeChecker(Publisher.IOnAirStatePublisher statePublisher)
         {
+            this.statePublisher = statePublisher;
             this.microphone = GetMicrophoneDevice();
 
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
@@ -39,7 +42,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             for (int i = 0; i < sessionCount; i++)
             {
                 string sessionIdentifier = sessions[i].GetSessionIdentifier;
-                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier));
+                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier, statePublisher));
             }
         }
 
@@ -48,7 +51,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             IAudioSessionControl2 newSession2 = (IAudioSessionControl2)newSession;
             newSession2.GetSessionIdentifier(out string sessionIdentifier);
 
-            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier));
+            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, statePublisher));
         }
 
         private MMDevice GetMicrophoneDevice()
@@ -74,9 +77,12 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
     {
         private Regex processNameRegex = new Regex(@"([a-zA-Z]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         internal string processName;
+        private IOnAirStatePublisher statePublisher;
 
-        public AudioSessionCreatedListener(string sessionIdentifier)
+        public AudioSessionCreatedListener(string sessionIdentifier, IOnAirStatePublisher statePublisher)
         {
+            this.statePublisher = statePublisher;
+
             Match match = processNameRegex.Match(sessionIdentifier);
             this.processName = match.Value;
 
@@ -147,11 +153,17 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         public void OnStateChanged(AudioSessionState state)
         {
             Console.WriteLine(this.processName + ": OnStateChanged: " + state);
+            
+            State newState = convertAudioSessionState(state);
+            statePublisher.updateMicrophoneState(newState);
         }
 
         int IAudioSessionEvents.OnStateChanged(AudioSessionState state)
         {
             Console.WriteLine(this.processName + ": OnStateChanged: " + state);
+
+            State newState = convertAudioSessionState(state);
+            statePublisher.updateMicrophoneState(newState);
 
             return HResult.S_OK;
         }
@@ -159,6 +171,21 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         public void OnIconPathChanged(string iconPath)
         {
             Console.WriteLine(this.processName + ": OnIconPathChanged(1)");
+        }
+
+        State convertAudioSessionState(AudioSessionState state)
+        {
+            switch (state)
+            {
+                case AudioSessionState.AudioSessionStateActive:
+                    return State.Active;
+                case AudioSessionState.AudioSessionStateInactive:
+                    return State.Inactive;
+                case AudioSessionState.AudioSessionStateExpired:
+                    return State.Inactive;
+
+            }
+            throw new Exception("Unhandled state " + state);
         }
 
     }

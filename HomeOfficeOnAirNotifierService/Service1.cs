@@ -1,4 +1,5 @@
 ﻿using HomeOfficeOnAirNotifierService.HardwareChecker;
+using HomeOfficeOnAirNotifierService.Publisher;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,16 +16,20 @@ namespace HomeOfficeOnAirNotifierService
     {
         private IHardwareChecker microphoneChecker;
 
+        private IOnAirStatePublisher statePublisher;
+
         public Service1()
         {
             InitializeComponent();
 
             this.microphoneChecker = new MicrophoneChecker();
+
+            this.statePublisher = new OpenhabOnAirStatePublisher();
         }
 
         protected override void OnStart(string[] args)
         {
-            this.microphoneChecker.InitializeChecker();
+            this.microphoneChecker.InitializeChecker(statePublisher);
 
             this.microphoneChecker.CheckHardwareForSessions();
         }
