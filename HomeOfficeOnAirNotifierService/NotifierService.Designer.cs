@@ -1,6 +1,6 @@
 ﻿namespace HomeOfficeOnAirNotifierService
 {
-    partial class Service1
+    partial class NotifierService
     {
         /// <summary> 
         /// Required designer variable.

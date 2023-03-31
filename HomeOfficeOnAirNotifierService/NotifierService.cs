@@ -12,16 +12,22 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService
 {
-    public partial class Service1 : ServiceBase
+    public partial class NotifierService : ServiceBase
     {
+        private static string LOG_TAG = "Service";
+
         private IHardwareUsageChecker microphoneChecker;
         private IHardwareUsageChecker cameraChecker;
 
         private IOnAirStatePublisher statePublisher;
+        private ILogger logger;
 
-        public Service1()
+        public NotifierService()
         {
             InitializeComponent();
+            this.logger = new FileLogger();
+
+            this.logger.LogInfo(LOG_TAG, "Service startup");
 
             this.microphoneChecker = new MicrophoneUsageChecker();
             this.cameraChecker = new CameraUsageChecker();
@@ -31,7 +37,7 @@ namespace HomeOfficeOnAirNotifierService
 
         protected override void OnStart(string[] args)
         {
-            this.microphoneChecker.InitializeChecker(statePublisher);
+            this.microphoneChecker.InitializeChecker(statePublisher, logger);
             //this.cameraChecker.InitializeChecker(statePublisher);
 
             this.microphoneChecker.CheckHardwareForUsage();

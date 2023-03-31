@@ -76,15 +76,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CameraChecker.cs" />
+    <Compile Include="CameraUsageChecker.cs" />
+    <Compile Include="ILogger.cs" />
     <Compile Include="OnAirStatePublisher.cs" />
-    <Compile Include="MicrophoneChecker.cs" />
-    <Compile Include="HardwareChecker.cs" />
-    <Compile Include="Service1.cs">
+    <Compile Include="MicrophoneUsageChecker.cs" />
+    <Compile Include="HardwareUsageChecker.cs" />
+    <Compile Include="NotifierService.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Service1.Designer.cs">
-      <DependentUpon>Service1.cs</DependentUpon>
+    <Compile Include="NotifierService.Designer.cs">
+      <DependentUpon>NotifierService.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

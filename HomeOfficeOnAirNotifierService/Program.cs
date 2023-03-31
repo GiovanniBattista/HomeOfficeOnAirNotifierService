@@ -16,7 +16,7 @@ namespace HomeOfficeOnAirNotifierService
         {
 #if DEBUG
             // While debugging, this section is used.
-            Service1 service = new Service1();
+            NotifierService service = new NotifierService();
             service.OnDebug();
             System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite);
 

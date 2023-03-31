@@ -12,8 +12,10 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class MicrophoneUsageChecker : IHardwareUsageChecker
+    internal class MicrophoneUsageChecker : HardwareUsageChecker
     {
+        private static string LOG_TAG = "MicrophoneUsageChecker";
+
         private string microphoneInQuestion;
         private MMDevice microphone;
         private IOnAirStatePublisher statePublisher;
@@ -23,26 +25,28 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneInQuestion");    
         }
 
-        public void InitializeChecker(Publisher.IOnAirStatePublisher statePublisher)
+        public override void InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger)
         {
+            base.InitializeChecker(statePublisher, logger);
+
             this.statePublisher = statePublisher;
             this.microphone = GetMicrophoneDevice();
 
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
         }
 
-        public void CheckHardwareForUsage()
+        public override void CheckHardwareForUsage()
         {
             AudioSessionManager sessionManager = this.microphone.AudioSessionManager;
 
             SessionCollection sessions = sessionManager.Sessions;
             int sessionCount = sessions.Count;
 
-            Console.WriteLine("Currently active sessions: " + sessionCount);
+            LogInfo(LOG_TAG, "Currently active sessions: " + sessionCount);
             for (int i = 0; i < sessionCount; i++)
             {
                 string sessionIdentifier = sessions[i].GetSessionIdentifier;
-                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier, statePublisher));
+                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier, statePublisher, Logger));
             }
         }
 
@@ -51,7 +55,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             IAudioSessionControl2 newSession2 = (IAudioSessionControl2)newSession;
             newSession2.GetSessionIdentifier(out string sessionIdentifier);
 
-            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, statePublisher));
+            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, statePublisher, Logger));
         }
 
         private MMDevice GetMicrophoneDevice()
@@ -75,84 +79,89 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
     internal class AudioSessionCreatedListener : IAudioSessionEvents, IAudioSessionEventsHandler
     {
+        private static string LOG_TAG = "AudioSessionCreatedListener";
+
         private Regex processNameRegex = new Regex(@"([a-zA-Z]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         internal string processName;
         private IOnAirStatePublisher statePublisher;
+        private ILogger logger;
 
-        public AudioSessionCreatedListener(string sessionIdentifier, IOnAirStatePublisher statePublisher)
+        public AudioSessionCreatedListener(string sessionIdentifier, IOnAirStatePublisher statePublisher, ILogger logger)
         {
             this.statePublisher = statePublisher;
+            this.logger = logger;
 
             Match match = processNameRegex.Match(sessionIdentifier);
             this.processName = match.Value;
 
-            Console.WriteLine($"Created Listener for audio session of process '{processName}'");
+            this.logger.LogInfo(LOG_TAG, $"Created Listener for audio session of process '{processName}'");
         }
 
         public void OnChannelVolumeChanged(uint channelCount, IntPtr newVolumes, uint channelIndex)
         {
-            Console.WriteLine(this.processName + ": OnChannelVolumeChanged(3)");
+
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnChannelVolumeChanged(3)");
         }
 
         public int OnChannelVolumeChanged(uint channelCount, IntPtr newVolumes, uint channelIndex, ref Guid eventContext)
         {
-            Console.WriteLine(this.processName + ": OnChannelVolumeChanged(4)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnChannelVolumeChanged(4)");
             return HResult.S_OK;
         }
 
         public void OnDisplayNameChanged(string displayName)
         {
-            Console.WriteLine(this.processName + ": OnDisplayNameChanged(1)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnDisplayNameChanged(1)");
         }
 
         public int OnDisplayNameChanged(string displayName, ref Guid eventContext)
         {
-            Console.WriteLine(this.processName + ": OnDisplayNameChanged(2)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnDisplayNameChanged(2)");
             return HResult.S_OK;
         }
 
         public void OnGroupingParamChanged(ref Guid groupingId)
         {
-            Console.WriteLine(this.processName + ": OnGroupingParamChanged(1)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnGroupingParamChanged(1)");
         }
 
         public int OnGroupingParamChanged(ref Guid groupingId, ref Guid eventContext)
         {
-            Console.WriteLine(this.processName + ": OnGroupingParamChanged(2)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnGroupingParamChanged(2)");
             return HResult.S_OK;
         }
 
         public int OnIconPathChanged(string iconPath, ref Guid eventContext)
         {
-            Console.WriteLine(this.processName + ": OnIconPathChanged(2)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnIconPathChanged(2)");
             return HResult.S_OK;
         }
 
         public void OnVolumeChanged(float volume, bool isMuted)
         {
-            Console.WriteLine(this.processName + ": OnVolumeChanged(3)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnVolumeChanged(3)");
         }
 
         public int OnSimpleVolumeChanged(float volume, bool isMuted, ref Guid eventContext)
         {
-            Console.WriteLine(this.processName + ": OnSimpleVolumeChanged(3)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnSimpleVolumeChanged(3)");
             return HResult.S_OK;
         }
 
         public void OnSessionDisconnected(AudioSessionDisconnectReason disconnectReason)
         {
-            Console.WriteLine(this.processName + ": OnSessionDisconnected: " + disconnectReason);
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnSessionDisconnected: " + disconnectReason);
         }
 
         int IAudioSessionEvents.OnSessionDisconnected(AudioSessionDisconnectReason disconnectReason)
         {
-            Console.WriteLine(this.processName + ": OnSessionDisconnected: " + disconnectReason);
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnSessionDisconnected: " + disconnectReason);
             return HResult.S_OK;
         }
 
         public void OnStateChanged(AudioSessionState state)
         {
-            Console.WriteLine(this.processName + ": OnStateChanged: " + state);
+            this.logger.LogInfo(LOG_TAG, this.processName + " - Audio session state changed to " + state);
             
             State newState = convertAudioSessionState(state);
             statePublisher.updateMicrophoneState(newState);
@@ -160,7 +169,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
         int IAudioSessionEvents.OnStateChanged(AudioSessionState state)
         {
-            Console.WriteLine(this.processName + ": OnStateChanged: " + state);
+            this.logger.LogInfo(LOG_TAG, this.processName + " - Audio session state changed to : " + state);
 
             State newState = convertAudioSessionState(state);
             statePublisher.updateMicrophoneState(newState);
@@ -170,7 +179,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
         public void OnIconPathChanged(string iconPath)
         {
-            Console.WriteLine(this.processName + ": OnIconPathChanged(1)");
+            this.logger.LogInfo(LOG_TAG, this.processName + ": OnIconPathChanged(1)");
         }
 
         State convertAudioSessionState(AudioSessionState state)

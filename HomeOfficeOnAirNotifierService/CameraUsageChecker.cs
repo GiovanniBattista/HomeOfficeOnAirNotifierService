@@ -8,10 +8,12 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class CameraUsageChecker : IHardwareUsageChecker
+    internal class CameraUsageChecker : HardwareUsageChecker
     {
-        public void InitializeChecker(IOnAirStatePublisher statePublisher)
+        public override void InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
         {
+            base.InitializeChecker(statePublisher, logger);
+
             ManagementEventWatcher watcher = new ManagementEventWatcher();
             WqlEventQuery query = new WqlEventQuery(
             "SELECT * FROM __InstanceOperationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_PnPEntity' AND TargetInstance.Name LIKE '%Camera%'"
@@ -24,7 +26,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             watcher.EventArrived += new EventArrivedEventHandler(CameraEventArrived);
         }
 
-        public void CheckHardwareForUsage()
+        public override void CheckHardwareForUsage()
         {
             // nothing to do here for the moment
         }
