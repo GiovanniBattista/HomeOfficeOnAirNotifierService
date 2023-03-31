@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal interface IHardwareChecker
+    internal interface IHardwareUsageChecker
     {
         void InitializeChecker(Publisher.IOnAirStatePublisher statePublisher);
 
-        void CheckHardwareForSessions();
+        void CheckHardwareForUsage();
     }
 }

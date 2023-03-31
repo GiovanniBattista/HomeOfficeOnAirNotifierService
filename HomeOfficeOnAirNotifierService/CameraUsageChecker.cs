@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class CameraChecker : IHardwareChecker
+    internal class CameraUsageChecker : IHardwareUsageChecker
     {
         public void InitializeChecker(IOnAirStatePublisher statePublisher)
         {
@@ -24,7 +24,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             watcher.EventArrived += new EventArrivedEventHandler(CameraEventArrived);
         }
 
-        public void CheckHardwareForSessions()
+        public void CheckHardwareForUsage()
         {
             // nothing to do here for the moment
         }

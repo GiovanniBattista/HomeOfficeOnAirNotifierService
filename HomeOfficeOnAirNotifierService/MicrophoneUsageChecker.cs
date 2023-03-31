@@ -12,13 +12,13 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class MicrophoneChecker : IHardwareChecker
+    internal class MicrophoneUsageChecker : IHardwareUsageChecker
     {
         private string microphoneInQuestion;
         private MMDevice microphone;
         private IOnAirStatePublisher statePublisher;
 
-        public MicrophoneChecker() 
+        public MicrophoneUsageChecker() 
         {
             this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneInQuestion");    
         }
@@ -31,7 +31,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
         }
 
-        public void CheckHardwareForSessions()
+        public void CheckHardwareForUsage()
         {
             AudioSessionManager sessionManager = this.microphone.AudioSessionManager;
 
