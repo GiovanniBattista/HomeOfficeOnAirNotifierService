@@ -22,9 +22,15 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             get; set;
         }
 
+        protected IOnAirStatePublisher StatePublisher
+        {
+            get; set;
+        }
+
         public virtual void InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
         {
             this.Logger = logger;
+            this.StatePublisher = statePublisher;
         }
 
         public abstract void CheckHardwareForUsage();

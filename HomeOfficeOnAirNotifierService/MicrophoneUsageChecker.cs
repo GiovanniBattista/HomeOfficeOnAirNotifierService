@@ -18,7 +18,6 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
         private string microphoneInQuestion;
         private MMDevice microphone;
-        private IOnAirStatePublisher statePublisher;
 
         public MicrophoneUsageChecker() 
         {
@@ -29,9 +28,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         {
             base.InitializeChecker(statePublisher, logger);
 
-            this.statePublisher = statePublisher;
             this.microphone = GetMicrophoneDevice();
-
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
         }
 
@@ -46,7 +43,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             for (int i = 0; i < sessionCount; i++)
             {
                 string sessionIdentifier = sessions[i].GetSessionIdentifier;
-                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier, statePublisher, Logger));
+                sessions[i].RegisterEventClient(new AudioSessionCreatedListener(sessionIdentifier, StatePublisher, Logger));
             }
         }
 
@@ -55,7 +52,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             IAudioSessionControl2 newSession2 = (IAudioSessionControl2)newSession;
             newSession2.GetSessionIdentifier(out string sessionIdentifier);
 
-            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, statePublisher, Logger));
+            newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, StatePublisher, Logger));
         }
 
         private MMDevice GetMicrophoneDevice()
