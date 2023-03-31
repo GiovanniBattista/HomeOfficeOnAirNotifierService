@@ -15,6 +15,7 @@ namespace HomeOfficeOnAirNotifierService
     public partial class Service1 : ServiceBase
     {
         private IHardwareChecker microphoneChecker;
+        private IHardwareChecker cameraChecker;
 
         private IOnAirStatePublisher statePublisher;
 
@@ -23,6 +24,7 @@ namespace HomeOfficeOnAirNotifierService
             InitializeComponent();
 
             this.microphoneChecker = new MicrophoneChecker();
+            this.cameraChecker = new CameraChecker();
 
             this.statePublisher = new OpenhabOnAirStatePublisher();
         }
@@ -30,8 +32,10 @@ namespace HomeOfficeOnAirNotifierService
         protected override void OnStart(string[] args)
         {
             this.microphoneChecker.InitializeChecker(statePublisher);
+            //this.cameraChecker.InitializeChecker(statePublisher);
 
             this.microphoneChecker.CheckHardwareForSessions();
+            //this.cameraChecker.CheckHardwareForSessions();
         }
 
         public void OnDebug()
