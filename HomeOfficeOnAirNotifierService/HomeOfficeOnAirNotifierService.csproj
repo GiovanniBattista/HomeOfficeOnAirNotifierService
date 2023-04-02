@@ -77,6 +77,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CameraUsageChecker.cs" />
+    <Compile Include="RegistryCapabilityAccessChecker.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="OnAirStatePublisher.cs" />
     <Compile Include="MicrophoneUsageChecker.cs" />

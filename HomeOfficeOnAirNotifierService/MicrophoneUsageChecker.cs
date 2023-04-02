@@ -161,7 +161,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.logger.LogInfo(LOG_TAG, this.processName + " - Audio session state changed to " + state);
             
             State newState = convertAudioSessionState(state);
-            statePublisher.updateMicrophoneState(newState);
+            statePublisher.PublishMicrophoneState(newState);
         }
 
         int IAudioSessionEvents.OnStateChanged(AudioSessionState state)
@@ -169,7 +169,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.logger.LogInfo(LOG_TAG, this.processName + " - Audio session state changed to : " + state);
 
             State newState = convertAudioSessionState(state);
-            statePublisher.updateMicrophoneState(newState);
+            statePublisher.PublishMicrophoneState(newState);
 
             return HResult.S_OK;
         }

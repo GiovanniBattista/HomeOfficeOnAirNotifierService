@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.Publisher
 {
-    internal enum State { Active, Inactive }
+    internal enum State { Active, Inactive, Unknown }
 
     internal interface IOnAirStatePublisher
     {
-        void updateMicrophoneState(State newState);
+        void PublishMicrophoneState(State newState);
 
-        void updateCameraState(State newState);
+        void PublishCameraState(State newState);
     }
 
     internal class OpenhabOnAirStatePublisher : IOnAirStatePublisher
@@ -37,12 +37,12 @@ namespace HomeOfficeOnAirNotifierService.Publisher
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.bearerHeaderValue);
         }
 
-        public void updateMicrophoneState(State newState)
+        public void PublishMicrophoneState(State newState)
         {
             putAsync(newState, this.microphoneEndpointPath);
         }
 
-        public void updateCameraState(State newState)
+        public void PublishCameraState(State newState)
         {
             putAsync(newState, this.cameraEndpointPath);
         }
