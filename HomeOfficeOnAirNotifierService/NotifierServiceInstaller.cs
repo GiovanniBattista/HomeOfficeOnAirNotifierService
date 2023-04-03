@@ -25,7 +25,7 @@ namespace HomeOfficeOnAirNotifierService
             notifierServiceInstaller = new ServiceInstaller();
 
             // The services run under the system account.
-            processInstaller.Account = ServiceAccount.LocalService;
+            processInstaller.Account = ServiceAccount.LocalSystem;
 
             // The services are started automatically.
             notifierServiceInstaller.StartType = ServiceStartMode.Automatic;
