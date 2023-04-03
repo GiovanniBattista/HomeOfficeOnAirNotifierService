@@ -49,26 +49,28 @@ namespace HomeOfficeOnAirNotifierService
 
         protected override void OnStart(string[] args)
         {
-            this.microphoneChecker.InitializeChecker(statePublisher, logger);
-            this.cameraChecker.InitializeChecker(statePublisher, logger);
+            //this.microphoneChecker.InitializeChecker(statePublisher, logger);
+            //this.cameraChecker.InitializeChecker(statePublisher, logger);
 
             this.micRegistryCheckerInitSuccessfully = this.microphoneRegistryChecker.InitializeChecker(statePublisher, logger);
             this.cameraRegistryCheckerInitSuccessfully = this.cameraRegistryChecker.InitializeChecker(statePublisher, logger);
 
-            this.microphoneChecker.CheckHardwareForUsage();
-            this.cameraChecker.CheckHardwareForUsage();
+            //this.microphoneChecker.CheckHardwareForUsage();
+            //this.cameraChecker.CheckHardwareForUsage();
 
-            if (this.micRegistryCheckerInitSuccessfully)
-                this.microphoneRegistryChecker.CheckHardwareForUsage();
-            if (this.cameraRegistryCheckerInitSuccessfully)
-                this.cameraRegistryChecker.CheckHardwareForUsage();
+            //if (this.micRegistryCheckerInitSuccessfully)
+            //    this.microphoneRegistryChecker.CheckHardwareForUsage();
+            //if (this.cameraRegistryCheckerInitSuccessfully)
+            //    this.cameraRegistryChecker.CheckHardwareForUsage();
 
+            /*
             if (this.micRegistryCheckerInitSuccessfully || this.cameraRegistryCheckerInitSuccessfully)
             {
                 this.registryCheckerTimer = new System.Timers.Timer(5 * 1000); // check every 5 seconds
                 this.registryCheckerTimer.Elapsed += RegistryCheckerTimerElapsed;
                 this.registryCheckerTimer.Start();
             }
+            */
         }
 
         private void RegistryCheckerTimerElapsed(object sender, ElapsedEventArgs e)

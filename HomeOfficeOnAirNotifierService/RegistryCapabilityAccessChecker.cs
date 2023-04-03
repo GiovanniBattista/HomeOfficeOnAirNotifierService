@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,6 +14,8 @@ namespace HomeOfficeOnAirNotifierService
     internal class RegistryCapabilityAccessChecker : HardwareUsageChecker
     {
         private const string LOG_TAG = "RegistryCapabilityAccessChecker";
+
+        private ManagementEventWatcher watcher;
 
         private string hardware2Check;
         private string registryKey;
@@ -44,9 +47,25 @@ namespace HomeOfficeOnAirNotifierService
             if (successfullyDeterminedUserSID)
             {
                 //HKEY_USERS\S - 1 - 5 - 21 - 1437491012 - 3787555785 - 1699929658 - 1001\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore
-                this.registryKey = $@"{loggedOnUserSID}\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\{hardware2Check}\NonPackaged";
+                this.registryKey = $@"{loggedOnUserSID}\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\{hardware2Check}\\NonPackaged";
+
+                string query = @"SELECT * FROM RegistryTreeChangeEvent " +
+                    "WHERE Hive='HKEY_USERS' " +
+                    "AND RootPath='" + registryKey + "'";
+
+                this.watcher = new ManagementEventWatcher(query);
+                this.watcher.EventArrived += new EventArrivedEventHandler(OnRegistryTreeChanged);
+
+                LogInfo(LOG_TAG, "Start watching for RegistryTreeChangeEvent for " + hardware2Check);
+                this.watcher.Start();
             }
             return successfullyDeterminedUserSID;
+        }
+
+        private void OnRegistryTreeChanged(object sender, EventArrivedEventArgs e)
+        {
+            LogInfo(LOG_TAG, "RegistryTreeChangeEvent occurred!");
+            CheckHardwareForUsage();
         }
 
         public override void CheckHardwareForUsage()
