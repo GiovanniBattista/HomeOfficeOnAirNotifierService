@@ -3,6 +3,7 @@ using HomeOfficeOnAirNotifierService.Publisher;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,16 +12,41 @@ namespace HomeOfficeOnAirNotifierService
 {
     internal class RegistryCapabilityAccessChecker : HardwareUsageChecker
     {
-        private static string LOG_TAG = "RegistryCapabilityAccessChecker";
+        private const string LOG_TAG = "RegistryCapabilityAccessChecker";
 
         private string hardware2Check;
         private string registryKey;
         private State lastKnownState = State.Unknown;
 
+        private string loggedOnSAMUser;
+        private string loggedOnUserSID;
+
         public RegistryCapabilityAccessChecker(String hardware2Check) 
         {
             this.hardware2Check = hardware2Check;
-            this.registryKey = $@"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\{hardware2Check}\NonPackaged";
+
+            this.loggedOnSAMUser = ConfigurationManager.AppSettings.Get("LoggedOnSAMUser");
+            this.loggedOnUserSID = ConfigurationManager.AppSettings.Get("LoggedOnUserSID");
+
+            if (this.loggedOnSAMUser == null && this.loggedOnUserSID == null)
+            {
+                throw new Exception("Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in <appSettings>\n" +
+                    "Both can be found in Registry under HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\SessionData");
+            }
+        }
+
+        public override bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
+        {
+            base.InitializeChecker(statePublisher, logger);
+
+            bool successfullyDeterminedUserSID = SetCurrentlyLoggedOnSecurityID();
+
+            if (successfullyDeterminedUserSID)
+            {
+                //HKEY_USERS\S - 1 - 5 - 21 - 1437491012 - 3787555785 - 1699929658 - 1001\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore
+                this.registryKey = $@"{loggedOnUserSID}\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\{hardware2Check}\NonPackaged";
+            }
+            return successfullyDeterminedUserSID;
         }
 
         public override void CheckHardwareForUsage()
@@ -32,7 +58,6 @@ namespace HomeOfficeOnAirNotifierService
             else
             {
                 PublishHardwareState(State.Inactive);
-
             }
         }
 
@@ -58,7 +83,7 @@ namespace HomeOfficeOnAirNotifierService
 
         private Boolean CheckIfHardwareIsInUse()
         {
-            using (var key = Registry.CurrentUser.OpenSubKey(registryKey))
+            using (var key = Registry.Users.OpenSubKey(registryKey))
             {
                 foreach (var subKeyName in key.GetSubKeyNames())
                 {
@@ -74,6 +99,48 @@ namespace HomeOfficeOnAirNotifierService
 
                 }
             }
+            return false;
+        }
+
+        private bool SetCurrentlyLoggedOnSecurityID()
+        {
+            if (this.loggedOnUserSID != null)
+                return true;
+
+            LogInfo(LOG_TAG, "LoggedOnUserSID was not set in appSettings. Trying to determine SID by currently logged on user now!");
+
+            //HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData
+            //HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData
+            using (var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            {
+                using (RegistryKey regKey = hklm.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData", false))
+                {
+                    if (regKey != null)
+                    {
+                        string[] sessionKeyNames = regKey.GetSubKeyNames();
+                        foreach (string sessionKey in sessionKeyNames)
+                        {
+                            using (RegistryKey key = regKey.OpenSubKey(sessionKey, false))
+                            {
+                                string[] names = key.GetValueNames();
+                                foreach (string name in names)
+                                {
+                                    if (name == "LoggedOnSAMUser")
+                                    {
+                                        if (key.GetValue(name).ToString() == this.loggedOnSAMUser)
+                                        {
+                                            this.loggedOnUserSID = key.GetValue("LoggedOnUserSID").ToString();
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            LogInfo(LOG_TAG, "Cannot determine logged on user! RegistryCapabilityAccessChecker will not be available.");
             return false;
         }
     }

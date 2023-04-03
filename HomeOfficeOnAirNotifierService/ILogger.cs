@@ -10,6 +10,8 @@ namespace HomeOfficeOnAirNotifierService
 {
     internal interface ILogger
     {
+        void InitializeLogger();
+
         void LogInfo(string tag, string message);
     }
 
@@ -25,6 +27,11 @@ namespace HomeOfficeOnAirNotifierService
         public FileLogger()
         {
             this.path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\service.log";
+        }
+
+        public void InitializeLogger()
+        {
+            File.Delete(this.path);
         }
 
         public void LogInfo(string tag, string logMessage)

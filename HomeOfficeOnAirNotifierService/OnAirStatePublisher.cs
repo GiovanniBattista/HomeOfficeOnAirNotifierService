@@ -19,15 +19,21 @@ namespace HomeOfficeOnAirNotifierService.Publisher
 
     internal class OpenhabOnAirStatePublisher : IOnAirStatePublisher
     {
+        private const string LOG_TAG = "OpenhabOnAirStatePublisher";
+
         static HttpClient client = new HttpClient();
+
+        private ILogger logger;
 
         private string baseEndpointUrl;
         private string microphoneEndpointPath;
         private string cameraEndpointPath;
         private string bearerHeaderValue;
 
-        public OpenhabOnAirStatePublisher()
+        public OpenhabOnAirStatePublisher(ILogger logger)
         {
+            this.logger = logger;
+
             this.baseEndpointUrl = ConfigurationManager.AppSettings.Get("BaseEndpointUrl");
             this.microphoneEndpointPath = ConfigurationManager.AppSettings.Get("MicrophoneEndpointPath");
             this.cameraEndpointPath = ConfigurationManager.AppSettings.Get("CameraEndpointPath");
@@ -39,11 +45,13 @@ namespace HomeOfficeOnAirNotifierService.Publisher
 
         public void PublishMicrophoneState(State newState)
         {
+            this.logger.LogInfo(LOG_TAG, "Updating state of microphone to " + newState);
             putAsync(newState, this.microphoneEndpointPath);
         }
 
         public void PublishCameraState(State newState)
         {
+            this.logger.LogInfo(LOG_TAG, "Updating state of camera to " + newState);
             putAsync(newState, this.cameraEndpointPath);
         }
 

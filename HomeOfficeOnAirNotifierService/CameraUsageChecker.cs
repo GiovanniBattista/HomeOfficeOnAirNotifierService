@@ -10,10 +10,11 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
     internal class CameraUsageChecker : HardwareUsageChecker
     {
-        public override void InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
+        public override bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
         {
             base.InitializeChecker(statePublisher, logger);
 
+            /*
             ManagementEventWatcher watcher = new ManagementEventWatcher();
             WqlEventQuery query = new WqlEventQuery(
             "SELECT * FROM __InstanceOperationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_PnPEntity' AND TargetInstance.Name LIKE '%Camera%'"
@@ -24,6 +25,9 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             watcher.Start();
 
             watcher.EventArrived += new EventArrivedEventHandler(CameraEventArrived);
+            */
+
+            return true;
         }
 
         public override void CheckHardwareForUsage()

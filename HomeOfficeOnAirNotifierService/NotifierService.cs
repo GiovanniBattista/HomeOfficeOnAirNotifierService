@@ -15,7 +15,7 @@ namespace HomeOfficeOnAirNotifierService
 {
     public partial class NotifierService : ServiceBase
     {
-        private static string LOG_TAG = "Service";
+        private const string LOG_TAG = "NotifierService";
 
         private IHardwareUsageChecker microphoneChecker;
         private IHardwareUsageChecker cameraChecker;
@@ -25,12 +25,16 @@ namespace HomeOfficeOnAirNotifierService
         private IOnAirStatePublisher statePublisher;
         private ILogger logger;
 
+        private bool micRegistryCheckerInitSuccessfully;
+        private bool cameraRegistryCheckerInitSuccessfully;
+
         private System.Timers.Timer registryCheckerTimer;
 
         public NotifierService()
         {
             InitializeComponent();
             this.logger = new FileLogger();
+            this.logger.InitializeLogger();
 
             this.logger.LogInfo(LOG_TAG, "Service startup");
 
@@ -40,32 +44,39 @@ namespace HomeOfficeOnAirNotifierService
             this.microphoneRegistryChecker = new RegistryCapabilityAccessChecker("microphone");
             this.cameraRegistryChecker = new RegistryCapabilityAccessChecker("webcam");
 
-            this.statePublisher = new OpenhabOnAirStatePublisher();
+            this.statePublisher = new OpenhabOnAirStatePublisher(logger);
         }
 
         protected override void OnStart(string[] args)
         {
             this.microphoneChecker.InitializeChecker(statePublisher, logger);
-            this.microphoneRegistryChecker.InitializeChecker(statePublisher, logger);
             this.cameraChecker.InitializeChecker(statePublisher, logger);
-            this.cameraRegistryChecker.InitializeChecker(statePublisher, logger);
+
+            this.micRegistryCheckerInitSuccessfully = this.microphoneRegistryChecker.InitializeChecker(statePublisher, logger);
+            this.cameraRegistryCheckerInitSuccessfully = this.cameraRegistryChecker.InitializeChecker(statePublisher, logger);
 
             this.microphoneChecker.CheckHardwareForUsage();
             this.cameraChecker.CheckHardwareForUsage();
 
-            this.microphoneRegistryChecker.CheckHardwareForUsage();
-            this.cameraRegistryChecker.CheckHardwareForUsage();
+            if (this.micRegistryCheckerInitSuccessfully)
+                this.microphoneRegistryChecker.CheckHardwareForUsage();
+            if (this.cameraRegistryCheckerInitSuccessfully)
+                this.cameraRegistryChecker.CheckHardwareForUsage();
 
-
-            this.registryCheckerTimer = new System.Timers.Timer(5 * 1000); // check every 5 seconds
-            this.registryCheckerTimer.Elapsed += RegistryCheckerTimerElapsed;
-            this.registryCheckerTimer.Start();
+            if (this.micRegistryCheckerInitSuccessfully || this.cameraRegistryCheckerInitSuccessfully)
+            {
+                this.registryCheckerTimer = new System.Timers.Timer(5 * 1000); // check every 5 seconds
+                this.registryCheckerTimer.Elapsed += RegistryCheckerTimerElapsed;
+                this.registryCheckerTimer.Start();
+            }
         }
 
         private void RegistryCheckerTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            this.microphoneRegistryChecker.CheckHardwareForUsage();
-            this.cameraRegistryChecker.CheckHardwareForUsage();
+            if (this.micRegistryCheckerInitSuccessfully)
+                this.microphoneRegistryChecker.CheckHardwareForUsage();
+            if (this.cameraRegistryCheckerInitSuccessfully)
+                this.cameraRegistryChecker.CheckHardwareForUsage();
         }
 
         public void OnDebug()

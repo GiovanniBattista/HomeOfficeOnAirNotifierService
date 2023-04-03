@@ -14,7 +14,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
     internal class MicrophoneUsageChecker : HardwareUsageChecker
     {
-        private static string LOG_TAG = "MicrophoneUsageChecker";
+        private const string LOG_TAG = "MicrophoneUsageChecker";
 
         private string microphoneInQuestion;
         private MMDevice microphone;
@@ -24,12 +24,14 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneInQuestion");    
         }
 
-        public override void InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger)
+        public override bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger)
         {
             base.InitializeChecker(statePublisher, logger);
 
             this.microphone = GetMicrophoneDevice();
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
+
+            return true;
         }
 
         public override void CheckHardwareForUsage()
@@ -76,7 +78,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
     internal class AudioSessionCreatedListener : IAudioSessionEvents, IAudioSessionEventsHandler
     {
-        private static string LOG_TAG = "AudioSessionCreatedListener";
+        private const string LOG_TAG = "AudioSessionCreatedListener";
 
         private Regex processNameRegex = new Regex(@"([a-zA-Z]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         internal string processName;
