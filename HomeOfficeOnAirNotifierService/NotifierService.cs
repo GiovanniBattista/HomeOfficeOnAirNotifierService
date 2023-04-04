@@ -49,14 +49,14 @@ namespace HomeOfficeOnAirNotifierService
 
         protected override void OnStart(string[] args)
         {
-            //this.microphoneChecker.InitializeChecker(statePublisher, logger);
+            this.microphoneChecker.InitializeChecker(statePublisher, logger);
             //this.cameraChecker.InitializeChecker(statePublisher, logger);
+
+            this.microphoneChecker.CheckHardwareForUsage();
+            //this.cameraChecker.CheckHardwareForUsage();
 
             this.micRegistryCheckerInitSuccessfully = this.microphoneRegistryChecker.InitializeChecker(statePublisher, logger);
             this.cameraRegistryCheckerInitSuccessfully = this.cameraRegistryChecker.InitializeChecker(statePublisher, logger);
-
-            //this.microphoneChecker.CheckHardwareForUsage();
-            //this.cameraChecker.CheckHardwareForUsage();
 
             //if (this.micRegistryCheckerInitSuccessfully)
             //    this.microphoneRegistryChecker.CheckHardwareForUsage();
