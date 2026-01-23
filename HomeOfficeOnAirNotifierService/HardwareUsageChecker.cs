@@ -37,9 +37,9 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
         public abstract void CheckHardwareForUsage();
 
-        protected void LogInfo(string tag, string message)
+        protected ILogger getLogger()
         {
-            this.Logger.LogInfo(tag, message);
+            return this.Logger;
         }
     }
 }

@@ -21,12 +21,22 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
         public MicrophoneUsageChecker() 
         {
-            this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneInQuestion");    
+            this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneIDInQuestion");    
         }
 
         public override bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger)
         {
             base.InitializeChecker(statePublisher, logger);
+
+            if (string.IsNullOrEmpty(this.microphoneInQuestion))
+            {
+                getLogger().LogInfo(LOG_TAG, "Provide MicrophoneIDInQuestion in App.config!\n" +
+                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" + 
+                    "Available capture devices:\n" + GetAllAudioDevices());
+
+                throw new Exception("Provide MicrophoneIDInQuestion in App.config!\n" +
+                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+            }
 
             this.microphone = GetMicrophoneDevice();
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
@@ -41,7 +51,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             SessionCollection sessions = sessionManager.Sessions;
             int sessionCount = sessions.Count;
 
-            LogInfo(LOG_TAG, "Currently active sessions: " + sessionCount);
+            getLogger().LogInfo(LOG_TAG, "Currently active sessions: " + sessionCount);
             for (int i = 0; i < sessionCount; i++)
             {
                 string sessionIdentifier = sessions[i].GetSessionIdentifier;
@@ -60,18 +70,40 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         private MMDevice GetMicrophoneDevice()
         {
             // Create an instance of the MMDeviceEnumerator
-            MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator();
-
-            // Enumerate through all the audio endpoint devices
-            foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
+            using (var deviceEnumerator = new MMDeviceEnumerator())
             {
-                if (device.DeviceFriendlyName.Contains(microphoneInQuestion))
+                // Enumerate through all the audio endpoint devices
+                foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
                 {
-                    return device;
+                    if (device.ID.Equals(microphoneInQuestion))
+                    {
+                        return device;
+                    }
                 }
             }
 
             return null;
+        }
+
+        private string GetAllAudioDevices()
+        {
+            var sb = new StringBuilder();
+
+            using (var deviceEnumerator = new MMDeviceEnumerator())
+            {
+                foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.All))
+                {
+                    sb.Append("• ")
+                      .Append(device.DeviceFriendlyName ?? "<no name>")
+                      .Append(" | State=")
+                      .Append(device.State)
+                      .Append(" | ID=")
+                      .Append(device.ID)
+                      .AppendLine();
+                }
+            }
+
+            return sb.Length == 0 ? "<no capture devices found>" : sb.ToString();
         }
     }
 
