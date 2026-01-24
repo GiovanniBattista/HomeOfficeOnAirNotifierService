@@ -49,14 +49,31 @@ namespace HomeOfficeOnAirNotifierService
 
         protected override void OnStart(string[] args)
         {
-            this.microphoneChecker.InitializeChecker(statePublisher, logger);
-            //this.cameraChecker.InitializeChecker(statePublisher, logger);
+            if (!this.statePublisher.validateConfig())
+            {
+                this.logger.LogInfo(LOG_TAG, "Startup aborted due to invalid publisher configuration.");
+                this.ExitCode = 1066;  // "The service has returned a service-specific error code."
+                this.Stop();
+                return;
+            }
 
-            this.microphoneChecker.CheckHardwareForUsage();
-            //this.cameraChecker.CheckHardwareForUsage();
+            var successfullyChecked = this.microphoneChecker.InitializeChecker(statePublisher, logger);
+            if (!successfullyChecked)
+            {
+                this.logger.LogInfo(LOG_TAG, "Startup aborted due to microphone checker initialization failure.");
+                this.ExitCode = 1066;  // "The service has returned a service-specific error code."
+                this.Stop();
+                return;
+            }
 
             this.micRegistryCheckerInitSuccessfully = this.microphoneRegistryChecker.InitializeChecker(statePublisher, logger);
             this.cameraRegistryCheckerInitSuccessfully = this.cameraRegistryChecker.InitializeChecker(statePublisher, logger);
+
+            this.microphoneChecker.CheckHardwareForUsage();
+
+            //this.cameraChecker.InitializeChecker(statePublisher, logger);
+            //this.cameraChecker.CheckHardwareForUsage();
+
 
             //if (this.micRegistryCheckerInitSuccessfully)
             //    this.microphoneRegistryChecker.CheckHardwareForUsage();

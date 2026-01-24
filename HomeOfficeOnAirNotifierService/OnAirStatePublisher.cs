@@ -12,6 +12,8 @@ namespace HomeOfficeOnAirNotifierService.Publisher
 
     internal interface IOnAirStatePublisher
     {
+        bool validateConfig();
+
         void PublishMicrophoneState(State newState);
 
         void PublishCameraState(State newState);
@@ -41,6 +43,35 @@ namespace HomeOfficeOnAirNotifierService.Publisher
 
             client.BaseAddress = new Uri(this.baseEndpointUrl);
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.bearerHeaderValue);
+        }
+
+        public bool validateConfig()
+        {
+            if (string.IsNullOrEmpty(this.baseEndpointUrl))
+            {
+                logger.LogInfo(LOG_TAG, "Missing BaseEndpointUrl in config!");
+                return false; 
+            }
+
+            if (string.IsNullOrEmpty(this.microphoneEndpointPath))
+            {
+                logger.LogInfo(LOG_TAG, "Missing MicrophoneEndpointPath in config!");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(this.cameraEndpointPath))
+            {
+                logger.LogInfo(LOG_TAG, "Missing CameraEndpointPath in config!");
+                return false;
+            }
+                
+            if (string.IsNullOrEmpty(this.bearerHeaderValue))
+            {
+                logger.LogInfo(LOG_TAG, "Missing BearerHeaderValue in config!");
+                return false;
+            }
+
+            return true;
         }
 
         public void PublishMicrophoneState(State newState)

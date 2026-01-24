@@ -30,22 +30,21 @@ namespace HomeOfficeOnAirNotifierService
 
             this.loggedOnSAMUser = ConfigurationManager.AppSettings.Get("LoggedOnSAMUser");
             this.loggedOnUserSID = ConfigurationManager.AppSettings.Get("LoggedOnUserSID");
-
-            if (string.IsNullOrEmpty(this.loggedOnSAMUser) && string.IsNullOrEmpty(this.loggedOnUserSID))
-            {
-                getLogger().LogInfo(LOG_TAG, "Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in App.config>\n" +
-                    "Both can be found in Registry under HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\SessionData\n" +
-                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
-
-                throw new Exception("Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in App.config>\n" +
-                    "Both can be found in Registry under HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\SessionData\n" +
-                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
-            }
         }
 
         public override bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
         {
             base.InitializeChecker(statePublisher, logger);
+
+            if (string.IsNullOrEmpty(this.loggedOnSAMUser) && string.IsNullOrEmpty(this.loggedOnUserSID))
+            {
+                getLogger().LogInfo(LOG_TAG, "Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in Config!\n" +
+                    "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" +
+                    "Both can be found in Registry under HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\SessionData\n"
+                    );
+
+                return false;
+            }
 
             bool successfullyDeterminedUserSID = SetCurrentlyLoggedOnSecurityID();
 
@@ -63,7 +62,11 @@ namespace HomeOfficeOnAirNotifierService
 
                 getLogger().LogInfo(LOG_TAG, "Start watching for RegistryTreeChangeEvent for " + hardware2Check);
                 this.watcher.Start();
+            } else
+            {
+                getLogger().LogInfo(LOG_TAG, "Could not determine currently logged on user SID. RegistryCapabilityAccessChecker will not be available.");
             }
+
             return successfullyDeterminedUserSID;
         }
 
@@ -154,6 +157,7 @@ namespace HomeOfficeOnAirNotifierService
                                         if (key.GetValue(name).ToString() == this.loggedOnSAMUser)
                                         {
                                             this.loggedOnUserSID = key.GetValue("LoggedOnUserSID").ToString();
+                                            getLogger().LogInfo(LOG_TAG, "Got LoggedOnUserSID: " + this.loggedOnUserSID);
                                             return true;
                                         }
                                     }

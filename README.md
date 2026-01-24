@@ -26,8 +26,7 @@ Checkout the git repository and create a `App.config` file of the following form
 		<add key="BaseEndpointUrl" value="http://192.168.100.100/" />
 		<add key="MicrophoneEndpointPath" value="/rest/items/Microphone/state" />
 		<add key="CameraEndpointPath" value="/rest/items/Camera/state" />
-		<add key="BearerHeaderValue" value="oh." />
-
+		<add key="BearerHeaderValue" value="" /> <!-- You can generate one in OpenHAB in your User profile (bottom left) -->
 	</appSettings>
 	<runtime>
 		<assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">

@@ -30,16 +30,28 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
             if (string.IsNullOrEmpty(this.microphoneInQuestion))
             {
-                getLogger().LogInfo(LOG_TAG, "Provide MicrophoneIDInQuestion in App.config!\n" +
-                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" + 
+                getLogger().LogInfo(LOG_TAG, "Missing or empty 'MicrophoneIDInQuestion' in Config!\n" +
+                    "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" + 
                     "Available capture devices:\n" + GetAllAudioDevices());
 
-                throw new Exception("Provide MicrophoneIDInQuestion in App.config!\n" +
-                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                return false;
             }
 
             this.microphone = GetMicrophoneDevice();
+            if (this.microphone == null)
+            {
+                getLogger().LogInfo(LOG_TAG,
+                    $"No active capture device matched '{this.microphoneInQuestion}'.\n" +
+                    "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" +
+                    "Available capture devices:\n" + GetAllAudioDevices());
+
+                return false;
+            }
+
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
+
+            // Endpoint mute/volume changes (device-level)
+            this.microphone.AudioEndpointVolume.OnVolumeNotification += OnEndpointVolumeNotification;
 
             return true;
         }
@@ -65,6 +77,15 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             newSession2.GetSessionIdentifier(out string sessionIdentifier);
 
             newSession.RegisterAudioSessionNotification(new AudioSessionCreatedListener(sessionIdentifier, StatePublisher, Logger));
+        }
+
+        private void OnEndpointVolumeNotification(AudioVolumeNotificationData data)
+        {
+            // data.Muted -> global device mute
+            Logger.LogInfo(LOG_TAG, $"Mic endpoint volume changed. Muted={data.Muted}, MasterVolume={data.MasterVolume}");
+
+            // Optional: publish a separate item (MicMuted) OR incorporate into "OnAir"
+            // z.B. wenn muted => OFF, sonst unverändert
         }
 
         private MMDevice GetMicrophoneDevice()
@@ -112,7 +133,8 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
     {
         private const string LOG_TAG = "AudioSessionCreatedListener";
 
-        private Regex processNameRegex = new Regex(@"([a-zA-Z]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        //private Regex processNameRegex = new Regex(@"([a-zA-Z]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private Regex processNameRegex = new Regex(@"([^\\/:]+\.exe)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         internal string processName;
         private IOnAirStatePublisher statePublisher;
         private ILogger logger;
@@ -229,4 +251,5 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         }
 
     }
-}
+
+    }
