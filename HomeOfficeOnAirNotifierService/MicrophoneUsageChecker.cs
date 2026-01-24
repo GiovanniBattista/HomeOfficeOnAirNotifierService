@@ -12,42 +12,54 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class MicrophoneUsageChecker : HardwareUsageChecker
+    internal class MicrophoneUsageChecker : HardwareUsageChecker, IAppConfigValidator
     {
         private const string LOG_TAG = "MicrophoneUsageChecker";
 
         private string microphoneInQuestion;
         private MMDevice microphone;
 
-        public MicrophoneUsageChecker() 
+        public MicrophoneUsageChecker(ILogger logger) : base(logger)
         {
-            this.microphoneInQuestion = ConfigurationManager.AppSettings.Get("MicrophoneIDInQuestion");    
+
         }
 
-        public override bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger)
+        void IAppConfigValidator.UpdateBoundProperties()
         {
-            base.InitializeChecker(statePublisher, logger);
+            this.microphoneInQuestion = AppConfig.MicrophoneIDInQuestion;
+        }
 
+        bool IAppConfigValidator.IsConfigValid()
+        {
             if (string.IsNullOrEmpty(this.microphoneInQuestion))
             {
-                getLogger().LogInfo(LOG_TAG, "Missing or empty 'MicrophoneIDInQuestion' in Config!\n" +
-                    "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" + 
-                    "Available capture devices:\n" + GetAllAudioDevices());
-
-                return false;
-            }
-
-            this.microphone = GetMicrophoneDevice();
-            if (this.microphone == null)
-            {
-                getLogger().LogInfo(LOG_TAG,
-                    $"No active capture device matched '{this.microphoneInQuestion}'.\n" +
+                Logger.LogInfo(LOG_TAG, "Missing or empty 'MicrophoneIDInQuestion' in Config!\n" +
                     "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" +
                     "Available capture devices:\n" + GetAllAudioDevices());
 
                 return false;
             }
 
+            var microphone = GetMicrophoneDevice();
+            if (microphone == null) 
+            {
+                Logger.LogInfo(LOG_TAG,
+                    $"No capture device matched '{this.microphoneInQuestion}'. Maybe a typo in Config?\n" +
+                    "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" +
+                    "Available capture devices:\n" + GetAllAudioDevices());
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher)
+        {
+            base.InitializeChecker(statePublisher);
+
+            this.microphone = GetMicrophoneDevice();
+            
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
 
             // Endpoint mute/volume changes (device-level)
@@ -63,7 +75,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             SessionCollection sessions = sessionManager.Sessions;
             int sessionCount = sessions.Count;
 
-            getLogger().LogInfo(LOG_TAG, "Currently active sessions: " + sessionCount);
+            Logger.LogInfo(LOG_TAG, "Currently active sessions: " + sessionCount);
             for (int i = 0; i < sessionCount; i++)
             {
                 string sessionIdentifier = sessions[i].GetSessionIdentifier;
@@ -94,7 +106,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             using (var deviceEnumerator = new MMDeviceEnumerator())
             {
                 // Enumerate through all the audio endpoint devices
-                foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
+                foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.All))
                 {
                     if (device.ID.Equals(microphoneInQuestion))
                     {

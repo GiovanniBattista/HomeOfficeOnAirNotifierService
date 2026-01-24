@@ -12,14 +12,14 @@ namespace HomeOfficeOnAirNotifierService.Publisher
 
     internal interface IOnAirStatePublisher
     {
-        bool validateConfig();
+        void InitializePublisher();
 
         void PublishMicrophoneState(State newState);
 
         void PublishCameraState(State newState);
     }
 
-    internal class OpenhabOnAirStatePublisher : IOnAirStatePublisher
+    internal class OpenhabOnAirStatePublisher : IOnAirStatePublisher, IAppConfigValidator
     {
         private const string LOG_TAG = "OpenhabOnAirStatePublisher";
 
@@ -35,17 +35,17 @@ namespace HomeOfficeOnAirNotifierService.Publisher
         public OpenhabOnAirStatePublisher(ILogger logger)
         {
             this.logger = logger;
-
-            this.baseEndpointUrl = ConfigurationManager.AppSettings.Get("BaseEndpointUrl");
-            this.microphoneEndpointPath = ConfigurationManager.AppSettings.Get("MicrophoneEndpointPath");
-            this.cameraEndpointPath = ConfigurationManager.AppSettings.Get("CameraEndpointPath");
-            this.bearerHeaderValue = ConfigurationManager.AppSettings.Get("BearerHeaderValue");
-
-            client.BaseAddress = new Uri(this.baseEndpointUrl);
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.bearerHeaderValue);
         }
 
-        public bool validateConfig()
+        void IAppConfigValidator.UpdateBoundProperties()
+        {
+            this.baseEndpointUrl = AppConfig.BaseEndpointUrl;
+            this.microphoneEndpointPath = AppConfig.MicrophoneEndpointPath;
+            this.cameraEndpointPath = AppConfig.CameraEndpointPath;
+            this.bearerHeaderValue = AppConfig.BearerHeaderValue;
+        }
+
+        bool IAppConfigValidator.IsConfigValid()
         {
             if (string.IsNullOrEmpty(this.baseEndpointUrl))
             {
@@ -72,6 +72,12 @@ namespace HomeOfficeOnAirNotifierService.Publisher
             }
 
             return true;
+        }
+
+        public void InitializePublisher()
+        {
+            client.BaseAddress = new Uri(this.baseEndpointUrl);
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", this.bearerHeaderValue);
         }
 
         public void PublishMicrophoneState(State newState)

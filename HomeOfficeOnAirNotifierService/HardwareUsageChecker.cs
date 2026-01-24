@@ -9,13 +9,18 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
     internal interface IHardwareUsageChecker
     {
-        bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher, ILogger logger);
+        bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher);
 
         void CheckHardwareForUsage();
     }
 
     internal abstract class HardwareUsageChecker : IHardwareUsageChecker
     {
+
+        public HardwareUsageChecker(ILogger logger)
+        {
+            this.Logger = logger;
+        }
 
         protected ILogger Logger
         {
@@ -27,19 +32,13 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             get; set;
         }
 
-        public virtual bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
+        public virtual bool InitializeChecker(IOnAirStatePublisher statePublisher)
         {
-            this.Logger = logger;
             this.StatePublisher = statePublisher;
 
             return true;
         }
 
         public abstract void CheckHardwareForUsage();
-
-        protected ILogger getLogger()
-        {
-            return this.Logger;
-        }
     }
 }

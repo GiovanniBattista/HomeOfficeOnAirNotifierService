@@ -52,7 +52,13 @@ Checkout the git repository and create a `App.config` file of the following form
 ```
 
 ## Building
-Open Visual Studio (Code) and build the Release solution.
+Open Visual Studio and build the Release solution.
 
 ## Install Windows Service
 Use `Install.ps1` to install the Windows service or `Uninstall.ps1` to uninstall it.
+Note: Everyting is logged into `C:\ProgramData\HomeOfficeOnAirNotifierService\output.log`
+
+## Roadmap
+- [ ] Check when the microphone is muted in Google Meets (if possible)
+- [x] Keep the service running if a configured microphone is currently `NotPresent` (e.g. USB microphone).
+- [x] Reload config instead of having the service to restart when the config changes

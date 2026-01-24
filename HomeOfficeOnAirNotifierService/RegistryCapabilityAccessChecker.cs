@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService
 {
-    internal class RegistryCapabilityAccessChecker : HardwareUsageChecker
+    internal class RegistryCapabilityAccessChecker : HardwareUsageChecker, IAppConfigValidator
     {
         private const string LOG_TAG = "RegistryCapabilityAccessChecker";
 
@@ -24,27 +24,35 @@ namespace HomeOfficeOnAirNotifierService
         private string loggedOnSAMUser;
         private string loggedOnUserSID;
 
-        public RegistryCapabilityAccessChecker(String hardware2Check) 
+        public RegistryCapabilityAccessChecker(ILogger logger, String hardware2Check) : base(logger)
         {
             this.hardware2Check = hardware2Check;
-
-            this.loggedOnSAMUser = ConfigurationManager.AppSettings.Get("LoggedOnSAMUser");
-            this.loggedOnUserSID = ConfigurationManager.AppSettings.Get("LoggedOnUserSID");
         }
 
-        public override bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
+        void IAppConfigValidator.UpdateBoundProperties()
         {
-            base.InitializeChecker(statePublisher, logger);
+            this.loggedOnSAMUser = AppConfig.LoggedOnSAMUser;
+            this.loggedOnUserSID = AppConfig.LoggedOnUserSID;
+        }
 
+        bool IAppConfigValidator.IsConfigValid()
+        {
             if (string.IsNullOrEmpty(this.loggedOnSAMUser) && string.IsNullOrEmpty(this.loggedOnUserSID))
             {
-                getLogger().LogInfo(LOG_TAG, "Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in Config!\n" +
+                Logger.LogInfo(LOG_TAG, "Provide either LoggedOnUserSID or LoggedOnUserSID (preferred) in Config!\n" +
                     "Config file: " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile + "\n" +
                     "Both can be found in Registry under HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Authentication\\LogonUI\\SessionData\n"
                     );
 
                 return false;
             }
+
+            return true;
+        }
+
+        public override bool InitializeChecker(IOnAirStatePublisher statePublisher)
+        {
+            base.InitializeChecker(statePublisher);
 
             bool successfullyDeterminedUserSID = SetCurrentlyLoggedOnSecurityID();
 
@@ -60,11 +68,11 @@ namespace HomeOfficeOnAirNotifierService
                 this.watcher = new ManagementEventWatcher(query);
                 this.watcher.EventArrived += new EventArrivedEventHandler(OnRegistryTreeChanged);
 
-                getLogger().LogInfo(LOG_TAG, "Start watching for RegistryTreeChangeEvent for " + hardware2Check);
+                Logger.LogInfo(LOG_TAG, "Start watching for RegistryTreeChangeEvent for " + hardware2Check);
                 this.watcher.Start();
             } else
             {
-                getLogger().LogInfo(LOG_TAG, "Could not determine currently logged on user SID. RegistryCapabilityAccessChecker will not be available.");
+                Logger.LogInfo(LOG_TAG, "Could not determine currently logged on user SID. RegistryCapabilityAccessChecker will not be available.");
             }
 
             return successfullyDeterminedUserSID;
@@ -72,7 +80,7 @@ namespace HomeOfficeOnAirNotifierService
 
         private void OnRegistryTreeChanged(object sender, EventArrivedEventArgs e)
         {
-            getLogger().LogInfo(LOG_TAG, "RegistryTreeChangeEvent occurred!");
+            Logger.LogInfo(LOG_TAG, "RegistryTreeChangeEvent occurred!");
             CheckHardwareForUsage();
         }
 
@@ -93,7 +101,7 @@ namespace HomeOfficeOnAirNotifierService
             if (lastKnownState != state)
             {
                 lastKnownState = state;
-                getLogger().LogInfo(LOG_TAG, $"{this.hardware2Check} - State changed to {state}");
+                Logger.LogInfo(LOG_TAG, $"{this.hardware2Check} - State changed to {state}");
 
                 if (hardware2Check == "microphone")
                 {
@@ -134,7 +142,7 @@ namespace HomeOfficeOnAirNotifierService
             if (!string.IsNullOrEmpty(this.loggedOnUserSID))
                 return true;
 
-            getLogger().LogInfo(LOG_TAG, "LoggedOnUserSID was not set in appSettings. Trying to determine SID by currently logged on user now!");
+            Logger.LogInfo(LOG_TAG, "LoggedOnUserSID was not set in appSettings. Trying to determine SID by currently logged on user now!");
 
             //HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData
             //HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData
@@ -157,7 +165,7 @@ namespace HomeOfficeOnAirNotifierService
                                         if (key.GetValue(name).ToString() == this.loggedOnSAMUser)
                                         {
                                             this.loggedOnUserSID = key.GetValue("LoggedOnUserSID").ToString();
-                                            getLogger().LogInfo(LOG_TAG, "Got LoggedOnUserSID: " + this.loggedOnUserSID);
+                                            Logger.LogInfo(LOG_TAG, "Got LoggedOnUserSID: " + this.loggedOnUserSID);
                                             return true;
                                         }
                                     }
@@ -168,7 +176,7 @@ namespace HomeOfficeOnAirNotifierService
                 }
             }
 
-            getLogger().LogInfo(LOG_TAG, "Cannot determine logged on user! RegistryCapabilityAccessChecker will not be available.");
+            Logger.LogInfo(LOG_TAG, "Cannot determine logged on user! RegistryCapabilityAccessChecker will not be available.");
             return false;
         }
     }

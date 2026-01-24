@@ -8,11 +8,30 @@ using System.Threading.Tasks;
 
 namespace HomeOfficeOnAirNotifierService.HardwareChecker
 {
-    internal class CameraUsageChecker : HardwareUsageChecker
+    internal class CameraUsageChecker : HardwareUsageChecker, IAppConfigValidator
     {
-        public override bool InitializeChecker(IOnAirStatePublisher statePublisher, ILogger logger)
+        private const string LOG_TAG = "CameraUsageChecker";
+
+        public CameraUsageChecker(ILogger logger) : base(logger)
         {
-            base.InitializeChecker(statePublisher, logger);
+
+        }
+
+        void IAppConfigValidator.UpdateBoundProperties()
+        {
+            // nothing to do here
+        }
+
+        bool IAppConfigValidator.IsConfigValid()
+        {
+            return true;
+        }
+
+
+
+        public override bool InitializeChecker(IOnAirStatePublisher statePublisher)
+        {
+            base.InitializeChecker(statePublisher);
 
             /*
             ManagementEventWatcher watcher = new ManagementEventWatcher();

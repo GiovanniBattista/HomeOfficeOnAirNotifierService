@@ -22,48 +22,102 @@ namespace HomeOfficeOnAirNotifierService
 
     internal class FileLogger : ILogger
     {
-        private string path;
+        private readonly object sync = new object();
+
+        // wie viele Tage Logfiles behalten
+        private const int RetentionDays = 14;
+
+        // Ordner (für Services empfehle ich ProgramData)
+        private readonly string logDir;
+
+        private readonly string filePath;
+
+        // Dateiname-Präfix
+        private const string Prefix = "service";
 
         public FileLogger()
         {
-            this.path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\service.log";
+            logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "HomeOfficeOnAirNotifierService");
+
+            Directory.CreateDirectory(logDir);
+
+            filePath = GetDailyLogPath(DateTime.Now);
         }
 
         public void InitializeLogger()
         {
-            File.Delete(this.path);
+            Directory.CreateDirectory(logDir);
+            CleanupOldLogs();
         }
 
         public void LogInfo(string tag, string logMessage)
         {
+            WriteLine(Severity.INFO, tag, logMessage);
+        }
+
+        private void WriteLine(Severity severity, string tag, string message)
+        {
             try
             {
-                using (StreamWriter txtWriter = File.AppendText(path))
+                lock (sync)
                 {
-                    Log(txtWriter, Severity.INFO, tag, logMessage);
+                    string line =
+                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {severity} [{tag}] - {message}{Environment.NewLine}";
+
+                    File.AppendAllText(filePath, line, Encoding.UTF8);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                System.Diagnostics.Trace.WriteLine(ex.ToString());
             }
         }
 
-        private void Log(TextWriter txtWriter, Severity severity, string tag, string logMessage)
+        private string GetDailyLogPath(DateTime now)
+        {
+            // service-2026-01-24.log
+            return Path.Combine(logDir, $"{Prefix}-{now:yyyy-MM-dd}.log");
+        }
+
+        // --- Cleanup (Retention) ---
+
+        private DateTime lastCleanupDate = DateTime.MinValue.Date;
+
+        private void CleanupOldLogsOncePerDay()
+        {
+            var today = DateTime.Today;
+            if (lastCleanupDate == today) return;
+
+            CleanupOldLogs();
+            lastCleanupDate = today;
+        }
+
+        private void CleanupOldLogs()
         {
             try
             {
-                txtWriter.WriteLine("{0} {1} {2}  [{3}] - {4}", 
-                    DateTime.Now.ToShortDateString(),
-                    DateTime.Now.ToLongTimeString(), 
-                    severity,
-                    tag,
-                    logMessage);
+                if (!Directory.Exists(logDir)) return;
+
+                DateTime cutoff = DateTime.Today.AddDays(-RetentionDays);
+
+                foreach (var file in Directory.EnumerateFiles(logDir, $"{Prefix}-*.log"))
+                {
+                    var fi = new FileInfo(file);
+
+                    // schnelle Variante: LastWriteTime als Basis
+                    if (fi.LastWriteTime.Date < cutoff)
+                    {
+                        try { fi.Delete(); } catch { /* ignore */ }
+                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine(ex.ToString());
+                // Cleanup darf Logging nicht killen
             }
         }
     }
+
 }
