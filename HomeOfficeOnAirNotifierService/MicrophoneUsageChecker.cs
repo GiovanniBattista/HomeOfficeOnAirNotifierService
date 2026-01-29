@@ -63,7 +63,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             this.microphone.AudioSessionManager.OnSessionCreated += OnAudioSessionCreated;
 
             // Endpoint mute/volume changes (device-level)
-            this.microphone.AudioEndpointVolume.OnVolumeNotification += OnEndpointVolumeNotification;
+            //this.microphone.AudioEndpointVolume.OnVolumeNotification += OnEndpointVolumeNotification;
 
             return true;
         }
