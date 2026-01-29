@@ -32,7 +32,18 @@ namespace HomeOfficeOnAirNotifierService
         void IAppConfigValidator.UpdateBoundProperties()
         {
             this.loggedOnSAMUser = AppConfig.LoggedOnSAMUser;
-            this.loggedOnUserSID = AppConfig.LoggedOnUserSID;
+
+            var sidResolver = new LoggedOnUserSidResolver(this.Logger);
+            if (sidResolver.TryGetActiveConsoleUserSid(out var loggedOnUserSID))
+            {
+                Logger.LogInfo(LOG_TAG, "Automatically determined logged on user SID: " + loggedOnUserSID);
+                this.loggedOnUserSID = loggedOnUserSID;
+            }
+            else
+            {
+                Logger.LogInfo(LOG_TAG, "Could NOT determine logged on user SID automatically. Using configured value: " + AppConfig.LoggedOnUserSID);
+                this.loggedOnUserSID = AppConfig.LoggedOnUserSID;
+            }
         }
 
         bool IAppConfigValidator.IsConfigValid()

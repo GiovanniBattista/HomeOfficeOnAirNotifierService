@@ -79,6 +79,7 @@
   <ItemGroup>
     <Compile Include="CameraUsageChecker.cs" />
     <Compile Include="AppConfig.cs" />
+    <Compile Include="LoggedOnUserSidResolver.cs" />
     <Compile Include="NotifierServiceInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
