@@ -40,10 +40,6 @@ namespace HomeOfficeOnAirNotifierService
             logDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "HomeOfficeOnAirNotifierService");
-
-            Directory.CreateDirectory(logDir);
-
-            filePath = GetDailyLogPath(DateTime.Now);
         }
 
         public void InitializeLogger()
@@ -63,10 +59,19 @@ namespace HomeOfficeOnAirNotifierService
             {
                 lock (sync)
                 {
+                    Directory.CreateDirectory(logDir);
+
+                    // Daily rotation: pro Tag ein File
+                    string filePath = GetDailyLogPath(DateTime.Now);
+
                     string line =
                         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {severity} [{tag}] - {message}{Environment.NewLine}";
 
                     File.AppendAllText(filePath, line, Encoding.UTF8);
+
+                    // optional: nicht bei jedem Log aufräumen (kann IO kosten)
+                    // -> wir machen es nur 1x pro Tag (siehe unten)
+                    CleanupOldLogsOncePerDay();
                 }
             }
             catch (Exception ex)
