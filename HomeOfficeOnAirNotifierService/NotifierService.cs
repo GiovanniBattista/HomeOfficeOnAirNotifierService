@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace HomeOfficeOnAirNotifierService
         private readonly IHardwareUsageChecker cameraRegistryChecker;
 
         private IOnAirStatePublisher statePublisher;
-        private ILogger logger;
+        private ILogger Logger;
 
         // TODO: Those two vars are currently unused => remove them
         private bool micRegistryCheckerInitSuccessfully;
@@ -40,17 +41,24 @@ namespace HomeOfficeOnAirNotifierService
         public NotifierService()
         {
             InitializeComponent();
+            this.CanHandleSessionChangeEvent = true;
 
-            this.logger = new FileLogger();
-            this.logger.InitializeLogger();
+            this.Logger = new FileLogger();
+            this.Logger.InitializeLogger();
 
-            this.microphoneChecker = new MicrophoneUsageChecker(logger);
-            this.cameraChecker = new CameraUsageChecker(logger);
+            var wi = WindowsIdentity.GetCurrent();
+            this.Logger.LogInfo(LOG_TAG, $"Running as: {wi.Name} / SID={wi.User?.Value}");
+            this.Logger.LogInfo(LOG_TAG, $"Config: {AppDomain.CurrentDomain.SetupInformation.ConfigurationFile}");
+            this.Logger.LogInfo(LOG_TAG, $"BaseDir: {AppDomain.CurrentDomain.BaseDirectory}");
+            this.Logger.LogInfo(LOG_TAG, $"CurrentDir: {Environment.CurrentDirectory}");
 
-            this.microphoneRegistryChecker = new RegistryCapabilityAccessChecker(logger, "microphone");
-            this.cameraRegistryChecker = new RegistryCapabilityAccessChecker(logger, "webcam");
+            this.microphoneChecker = new MicrophoneUsageChecker(Logger);
+            this.cameraChecker = new CameraUsageChecker(Logger);
 
-            this.statePublisher = new OpenhabOnAirStatePublisher(logger);
+            this.microphoneRegistryChecker = new RegistryCapabilityAccessChecker(Logger, "microphone");
+            this.cameraRegistryChecker = new RegistryCapabilityAccessChecker(Logger, "webcam");
+
+            this.statePublisher = new OpenhabOnAirStatePublisher(Logger);
 
             this.configValidators.Add((IAppConfigValidator) this.statePublisher);
             this.configValidators.Add((IAppConfigValidator) this.microphoneChecker);
@@ -61,9 +69,39 @@ namespace HomeOfficeOnAirNotifierService
 
         protected override void OnStart(string[] args)
         {
-            this.logger.LogInfo(LOG_TAG, "Service startup");
+            this.Logger.LogInfo(LOG_TAG, "Service startup");
 
             StartRetryLoop(30_000);
+        }
+
+        public void OnDebug()
+        {
+            OnStart(null);
+        }
+
+        protected override void OnStop()
+        {
+            this.cameraChecker?.Dispose();
+            this.microphoneChecker?.Dispose();
+            this.cameraRegistryChecker?.Dispose();
+            this.microphoneRegistryChecker?.Dispose();
+        }
+
+        protected override void OnSessionChange(SessionChangeDescription changeDescription)
+        {
+            base.OnSessionChange(changeDescription);
+
+            Logger.LogInfo(LOG_TAG, $"Session change: {changeDescription.Reason}");
+
+            switch (changeDescription.Reason)
+            {
+                case SessionChangeReason.SessionLogon:
+                case SessionChangeReason.SessionUnlock:
+                case SessionChangeReason.ConsoleConnect:
+                case SessionChangeReason.RemoteConnect:
+                    this.Logger.LogInfo(LOG_TAG, "User session changed!");
+                    break;
+            }
         }
 
         public void InitializingServiceComponents()
@@ -75,33 +113,6 @@ namespace HomeOfficeOnAirNotifierService
             this.cameraRegistryChecker.InitializeChecker(statePublisher);
 
             this.microphoneChecker.CheckHardwareForUsage();
-
-            //this.cameraChecker.InitializeChecker(statePublisher, logger);
-            //this.cameraChecker.CheckHardwareForUsage();
-
-
-            //if (this.micRegistryCheckerInitSuccessfully)
-            //    this.microphoneRegistryChecker.CheckHardwareForUsage();
-            //if (this.cameraRegistryCheckerInitSuccessfully)
-            //    this.cameraRegistryChecker.CheckHardwareForUsage();
-
-            /*
-            if (this.micRegistryCheckerInitSuccessfully || this.cameraRegistryCheckerInitSuccessfully)
-            {
-                this.registryCheckerTimer = new System.Timers.Timer(5 * 1000); // check every 5 seconds
-                this.registryCheckerTimer.Elapsed += RegistryCheckerTimerElapsed;
-                this.registryCheckerTimer.Start();
-            }
-            */
-        }
-
-        public void OnDebug()
-        {
-            OnStart(null);
-        }
-
-        protected override void OnStop()
-        {
         }
 
         private void StartRetryLoop(double intervalMs)
@@ -128,7 +139,7 @@ namespace HomeOfficeOnAirNotifierService
                     validator.UpdateBoundProperties();
                     if (!validator.IsConfigValid())
                     {
-                        logger.LogInfo(LOG_TAG, "Service not yet ready (config/device). Will retry.");
+                        Logger.LogInfo(LOG_TAG, "Service not yet ready (config/device). Will retry.");
                         return;
                     }
                 }
@@ -136,7 +147,7 @@ namespace HomeOfficeOnAirNotifierService
                 InitializingServiceComponents(); // dein periodisches CheckHardwareForUsage etc.
                 monitoringRunning = true;
 
-                logger.LogInfo(LOG_TAG, "Monitoring started. Stopping retry loop.");
+                Logger.LogInfo(LOG_TAG, "Monitoring started. Stopping retry loop.");
                 retryTimer?.Stop();
             }
         }

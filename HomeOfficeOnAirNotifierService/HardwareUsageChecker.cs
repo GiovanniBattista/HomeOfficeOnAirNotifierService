@@ -12,6 +12,7 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         bool InitializeChecker(Publisher.IOnAirStatePublisher statePublisher);
 
         void CheckHardwareForUsage();
+        void Dispose();
     }
 
     internal abstract class HardwareUsageChecker : IHardwareUsageChecker
@@ -40,5 +41,8 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
         }
 
         public abstract void CheckHardwareForUsage();
+
+        public abstract void Dispose();
+
     }
 }

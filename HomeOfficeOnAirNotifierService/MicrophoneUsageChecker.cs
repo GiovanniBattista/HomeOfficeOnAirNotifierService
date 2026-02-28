@@ -138,6 +138,11 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
 
             return sb.Length == 0 ? "<no capture devices found>" : sb.ToString();
         }
+
+        public override void Dispose()
+        {
+            this.microphone?.Dispose();
+        }
     }
 
 

@@ -54,10 +54,17 @@ namespace HomeOfficeOnAirNotifierService.HardwareChecker
             // nothing to do here for the moment
         }
 
+        public override void Dispose()
+        {
+            // nothing to do here for the moment
+        }
+
         static void CameraEventArrived(object sender, EventArrivedEventArgs e)
         {
             Console.WriteLine("Camera device change event detected.");
         }
+
+
 
 
     }
